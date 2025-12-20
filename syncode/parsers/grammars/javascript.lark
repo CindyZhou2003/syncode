@@ -24,7 +24,7 @@ statement: expression_statement
          | with_statement
 
 // Expression Statements cannot start with '{', 'function', or 'class'
-expression_statement: expr_safe ";"?
+expression_statement: expr_safe ";"
 
 function_declaration: "async"? "function" "*"? IDENTIFIER function_params_postfix compound_statement
 class_declaration: "class" IDENTIFIER ("extends" expression)? class_body
@@ -155,7 +155,7 @@ identifier_as_another: IDENTIFIER "as" IDENTIFIER
 // Lexical Grammar
 
 // Increase priority (.2) to ensure these are matched over any generic rules
-IDENTIFIER.2: /[a-zA-Z_$][a-zA-Z0-9_$]*/
+IDENTIFIER: CNAME
 
 REGEX_LITERAL: /\/[^\n\/]+\/[gimsuy]*/
 BIGINT_LITERAL: /\d+n/
