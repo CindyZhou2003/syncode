@@ -1,0 +1,174 @@
+// JavaScript Grammar (Corrected)
+
+start: js_script_module
+
+js_script_module: top_level+
+
+top_level: statement
+         | function_declaration
+         | class_declaration
+
+statement: expression_statement
+         | declaration_statement
+         | if_statement
+         | switch_statement
+         | for_statement
+         | for_in_statement
+         | for_of_statement
+         | do_while_statement
+         | control_flow_statement
+         | try_catch_finally_statement
+         | label_statement
+         | export_statement
+         | import_statement
+         | with_statement
+
+// Expression Statements cannot start with '{', 'function', or 'class'
+expression_statement: expr_safe ";"?
+
+function_declaration: "async"? "function" "*"? IDENTIFIER function_params_postfix compound_statement
+class_declaration: "class" IDENTIFIER ("extends" expression)? class_body
+class_body: "{" class_member* "}"
+class_member: ("static" | "getter" | "setter" | "public" | "private")? (class_method | class_property)
+class_property: "#"? IDENTIFIER ("=" expression)? ";"?
+class_method: "#"? IDENTIFIER function_params_postfix compound_statement
+compound_statement: "{" statement* "}"
+
+export_statement: "export" "default"? declaration_statement ";"?
+                | "export" module_element "from" module_element ";"? 
+import_statement: "import" module_element ";"?
+                | "import" paren_enclosed_string ";"?
+                | "import" module_element "from" module_element ";"?
+label_statement: IDENTIFIER ":" statement*
+with_statement: "with" "(" expression ")" compound_statement
+try_catch_finally_statement: "try" compound_statement ("catch" ("(" expression ")")? compound_statement)? ("finally" compound_statement)?
+control_flow_statement: "break" ";"? | "continue" ";"? | "return" expression ";"? | "throw" expression ";"?
+do_while_statement: "do" compound_statement "while" "(" expression ")" ";"?
+for_of_statement: "for" "(" expression "of" expression ")" compound_statement
+for_in_statement: "for" "(" expression "in" expression ")" compound_statement
+for_statement: "for" "(" declaration_statement ";" expression ";" expression ")" compound_statement
+switch_statement: "switch" "(" expression ")" "{" case_clause* "}"
+case_clause: "case" expression ":" statement* | "default" ":" statement*
+if_statement: "if" "(" expression ")" compound_statement ("else" if_statement | "else" compound_statement)? 
+declaration_statement: ("var" | "let" | "const" | "static") lvalue "=" expression ";"?
+
+lvalue: member_expression
+
+// Expression Grammar
+
+expression: expr_safe | expr_func | expr_obj
+
+assignment_operator: "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" 
+                   | ">>=" | "<<=" | ">>>=" | "&=" | "^=" | "&&=" | "||=" | "??="
+
+expr_safe: unary_safe assignment_operator expression  -> assignment
+         | ternary_safe
+expr_func: unary_func assignment_operator expression  -> assignment
+         | ternary_func
+expr_obj:  unary_obj  assignment_operator expression  -> assignment
+         | ternary_obj
+
+// --- Ternary / Binary ---
+binary_op: "??" | "||" | "&&" | "|" | "^" | "&" | "==" | "===" | "!=" | "!==" 
+         | "<" | "<=" | ">" | ">=" | "instanceof" | "in" 
+         | ">>" | "<<" | ">>>" | "+" | "-" | "*" | "/" | "%" | "**"
+
+ternary_safe: logic_safe "?" expression ":" expression | logic_safe
+ternary_func: logic_func "?" expression ":" expression | logic_func
+ternary_obj:  logic_obj  "?" expression ":" expression | logic_obj
+
+logic_safe: logic_safe binary_op unary_expression | unary_safe
+logic_func: logic_func binary_op unary_expression | unary_func
+logic_obj:  logic_obj  binary_op unary_expression | unary_obj
+
+// --- Unary ---
+unary_expression: unary_safe | unary_func | unary_obj
+unary_operator: "+" | "-" | "++" | "--" | "!" | "~" | "typeof" | "void" | "delete" | "await"
+
+unary_safe: prefix_expression | member_safe
+unary_func: member_func
+unary_obj:  member_obj
+
+prefix_expression: unary_operator unary_expression
+
+// --- Member / Postfix ---
+member_expression: member_safe | member_func | member_obj
+
+member_safe: primary_safe postfix_modifier*
+member_func: primary_func postfix_modifier*
+member_obj:  primary_obj  postfix_modifier*
+
+postfix_modifier: "[" expression "]"
+                | "." IDENTIFIER
+                | "(" comma_separated_expressions? ")"
+                | "++" | "--" | "?"
+
+// --- Primary ---
+// Removed template_literal to fix whitespace ambiguity
+primary_safe: IDENTIFIER
+            | lexical_literal
+            | array_literal
+            | paren_enclosed_expression
+            | arrow_expression
+            | "this"
+            | "new" expression
+
+primary_func: function_expression
+            | class_expression
+
+primary_obj: object_literal
+
+
+paren_enclosed_expression: "(" expression? ")"
+
+object_literal: "{" comma_separated_properties? "}"
+comma_separated_properties: property ("," property)*
+property: (IDENTIFIER ":")? expression
+
+function_expression: "async"? "function" function_params_postfix compound_statement
+class_expression: "class" class_body
+
+arrow_expression: "async"? arrow_head "=>" arrow_body
+arrow_head: IDENTIFIER | "(" comma_separated_expressions? ")"
+arrow_body: compound_statement 
+          | expr_safe 
+          | expr_func
+
+lexical_literal: "null" | "undefined" | "true" | "false" 
+               | INTEGER_LITERAL | FLOAT_LITERAL | STRING_LITERAL | REGEX_LITERAL | BIGINT_LITERAL
+
+array_literal: "[" comma_separated_expressions? "]"
+
+comma_separated_expressions: expression ("," expression)*
+
+function_params_postfix: "(" comma_separated_function_params? ")"
+comma_separated_function_params: function_parameter ("," function_parameter)*
+function_parameter: IDENTIFIER ("=" expression)? | object_literal
+
+module_element: module_names | curly_enclosed_module_names
+paren_enclosed_string: "(" STRING_LITERAL ")"
+curly_enclosed_module_names: "{" comma_separated_module_names "}"
+comma_separated_module_names: module_names ("," module_names)*
+module_names: IDENTIFIER | identifier_as_another | STRING_LITERAL
+identifier_as_another: IDENTIFIER "as" IDENTIFIER
+
+// Lexical Grammar
+
+// Increase priority (.2) to ensure these are matched over any generic rules
+IDENTIFIER.2: /[a-zA-Z_$][a-zA-Z0-9_$]*/
+
+REGEX_LITERAL: /\/[^\n\/]+\/[gimsuy]*/
+BIGINT_LITERAL: /\d+n/
+FLOAT_LITERAL: /\d+[eE][+-]?\d+/ | /\d*\.\d+/
+INTEGER_LITERAL: /0[bB][01]+/ | /0[oO][0-7]+/ | /0[xX][0-9a-fA-F]+/ | /\d+/
+STRING_LITERAL.2: /'[^']*'/ | /"[^"]*"/
+
+LINE_COMMENT: /\/\/[^\n\r]*/
+BLOCK_COMMENT: /\/\*[\s\S]*?\*\//
+
+%import common.CNAME
+%import common.DIGIT
+%import common.WS
+%ignore WS
+%ignore LINE_COMMENT
+%ignore BLOCK_COMMENT

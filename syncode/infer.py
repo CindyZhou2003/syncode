@@ -28,7 +28,7 @@ class Syncode:
         quantize (bool, optional): Quantize model. Defaults to True.
         device (str, optional): Device to use. Defaults to "cuda".
         grammar (str, optional): Language to use for grammar constraints. Defaults to None.
-            Options include "python", "go", "calc", "sql", "json", "fol".
+            Options include "python", "go", "calc", "sql", "json", "fol", "javascript".
         parse_output_only (bool, optional): Parse only the output. Defaults to True.
         dev_mode (bool, optional): Development mode. Defaults to False.
         new_mask_store (bool, optional): Use new DFA mask store. Defaults to False.

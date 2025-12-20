@@ -13,7 +13,7 @@ class Grammar:
         self.ebnf = None
         grammar_filename = None
         assert name is not None, 'Grammar name not provided in grammar mode!'
-        if name in ['python', 'go', 'sql', 'tiny', 'calc', 'json', 'c', 'java', 'prover9', 'invariants']:
+        if name in ['python', 'go', 'sql', 'tiny', 'calc', 'json', 'c', 'java','javascript', 'prover9', 'invariants']:
             grammar_filename = f'{os.path.dirname(__file__)}/{name}.lark'
         elif name.endswith('.lark'): 
             if os.path.exists(name):
