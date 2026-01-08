@@ -1,12 +1,25 @@
-// JavaScript Grammar (Corrected)
+// JavaScript Grammar
 
 start: js_script_module
 
 js_script_module: top_level+
 
-top_level: statement
-         | function_declaration
+top_level: function_declaration
          | class_declaration
+         | declaration_statement
+         | export_statement
+         | import_statement
+         | if_statement
+         | for_statement
+         | for_in_statement
+         | for_of_statement
+         | switch_statement
+         | try_catch_finally_statement
+         | comment_block
+
+// ------------------------------------------
+// Statements (Inside functions, expressions ARE allowed)
+// ------------------------------------------
 
 statement: expression_statement
          | declaration_statement
@@ -18,13 +31,11 @@ statement: expression_statement
          | do_while_statement
          | control_flow_statement
          | try_catch_finally_statement
-         | label_statement
-         | export_statement
-         | import_statement
          | with_statement
+         | compound_statement
 
 // Expression Statements cannot start with '{', 'function', or 'class'
-expression_statement: expr_safe ";"
+expression_statement: expr_safe ";"?
 
 function_declaration: "async"? "function" "*"? IDENTIFIER function_params_postfix compound_statement
 class_declaration: "class" IDENTIFIER ("extends" expression)? class_body
@@ -39,7 +50,7 @@ export_statement: "export" "default"? declaration_statement ";"?
 import_statement: "import" module_element ";"?
                 | "import" paren_enclosed_string ";"?
                 | "import" module_element "from" module_element ";"?
-label_statement: IDENTIFIER ":" statement*
+
 with_statement: "with" "(" expression ")" compound_statement
 try_catch_finally_statement: "try" compound_statement ("catch" ("(" expression ")")? compound_statement)? ("finally" compound_statement)?
 control_flow_statement: "break" ";"? | "continue" ";"? | "return" expression ";"? | "throw" expression ";"?
@@ -58,28 +69,50 @@ lvalue: member_expression
 
 expression: expr_safe | expr_func | expr_obj
 
+// Level 1: Assignment (Lowest Priority)
+expr_safe: unary_safe assignment_operator expression -> assignment
+         | ternary_safe
+expr_func: unary_func assignment_operator expression -> assignment
+         | ternary_func
+expr_obj:  unary_obj  assignment_operator expression -> assignment
+         | ternary_obj
+
 assignment_operator: "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" 
                    | ">>=" | "<<=" | ">>>=" | "&=" | "^=" | "&&=" | "||=" | "??="
 
-expr_safe: unary_safe assignment_operator expression  -> assignment
-         | ternary_safe
-expr_func: unary_func assignment_operator expression  -> assignment
-         | ternary_func
-expr_obj:  unary_obj  assignment_operator expression  -> assignment
-         | ternary_obj
-
-// --- Ternary / Binary ---
-binary_op: "??" | "||" | "&&" | "|" | "^" | "&" | "==" | "===" | "!=" | "!==" 
-         | "<" | "<=" | ">" | ">=" | "instanceof" | "in" 
-         | ">>" | "<<" | ">>>" | "+" | "-" | "*" | "/" | "%" | "**"
-
+// Level 2: Ternary
 ternary_safe: logic_safe "?" expression ":" expression | logic_safe
 ternary_func: logic_func "?" expression ":" expression | logic_func
 ternary_obj:  logic_obj  "?" expression ":" expression | logic_obj
 
-logic_safe: logic_safe binary_op unary_expression | unary_safe
-logic_func: logic_func binary_op unary_expression | unary_func
-logic_obj:  logic_obj  binary_op unary_expression | unary_obj
+// Level 3: Logical (||, &&, ??)
+logic_safe: logic_safe logic_op compare_expr | compare_safe
+logic_func: logic_func logic_op compare_expr | compare_func
+logic_obj:  logic_obj  logic_op compare_expr | compare_obj
+logic_op: "||" | "&&" | "??"
+
+// Level 4: Comparison (==, <, >, in)
+compare_safe: compare_safe compare_op sum_expr | sum_safe
+compare_func: compare_func compare_op sum_expr | sum_func
+compare_obj:  compare_obj  compare_op sum_expr | sum_obj
+compare_op: "==" | "===" | "!=" | "!==" | "<" | "<=" | ">" | ">=" | "instanceof" | "in"
+
+// Level 5: Sum (+, -)
+sum_safe: sum_safe sum_op product_expr | product_safe
+sum_func: sum_func sum_op product_expr | product_func
+sum_obj:  sum_obj  sum_op product_expr | product_obj
+sum_op: "+" | "-"
+
+// Level 6: Product (*, /, %)
+product_safe: product_safe product_op unary_expression | unary_safe
+product_func: product_func product_op unary_expression | unary_func
+product_obj:  product_obj  product_op unary_expression | unary_obj
+product_op: "*" | "/" | "%" | "**"
+
+// Helper to bridge the split chains back to unified expressions for the right-hand side
+compare_expr: compare_safe | compare_func | compare_obj
+sum_expr: sum_safe | sum_func | sum_obj
+product_expr: product_safe | product_func | product_obj
 
 // --- Unary ---
 unary_expression: unary_safe | unary_func | unary_obj
@@ -104,12 +137,13 @@ postfix_modifier: "[" expression "]"
                 | "++" | "--" | "?"
 
 // --- Primary ---
-// Removed template_literal to fix whitespace ambiguity
+
 primary_safe: IDENTIFIER
             | lexical_literal
+            | TEMPLATE_LITERAL
             | array_literal
             | paren_enclosed_expression
-            | arrow_expression
+            | arrow_expression_safe
             | "this"
             | "new" expression
 
@@ -128,8 +162,9 @@ property: (IDENTIFIER ":")? expression
 function_expression: "async"? "function" function_params_postfix compound_statement
 class_expression: "class" class_body
 
-arrow_expression: "async"? arrow_head "=>" arrow_body
-arrow_head: IDENTIFIER | "(" comma_separated_expressions? ")"
+// Split Arrow to avoid collision
+arrow_expression_safe: IDENTIFIER "=>" arrow_body 
+                     | "(" comma_separated_expressions? ")" "=>" arrow_body
 arrow_body: compound_statement 
           | expr_safe 
           | expr_func
@@ -154,14 +189,14 @@ identifier_as_another: IDENTIFIER "as" IDENTIFIER
 
 // Lexical Grammar
 
-// Increase priority (.2) to ensure these are matched over any generic rules
+comment_block: /#[^\n]*/
 IDENTIFIER: CNAME
-
 REGEX_LITERAL: /\/[^\n\/]+\/[gimsuy]*/
 BIGINT_LITERAL: /\d+n/
 FLOAT_LITERAL: /\d+[eE][+-]?\d+/ | /\d*\.\d+/
 INTEGER_LITERAL: /0[bB][01]+/ | /0[oO][0-7]+/ | /0[xX][0-9a-fA-F]+/ | /\d+/
-STRING_LITERAL.2: /'[^']*'/ | /"[^"]*"/
+STRING_LITERAL: /'[^']*'/ | /"[^"]*"/
+TEMPLATE_LITERAL: /`([^`\\]*(\\.[^`\\]*)*)`/
 
 LINE_COMMENT: /\/\/[^\n\r]*/
 BLOCK_COMMENT: /\/\*[\s\S]*?\*\//
