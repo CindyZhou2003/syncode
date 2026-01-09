@@ -57,7 +57,7 @@ control_flow_statement: "break" ";"? | "continue" ";"? | "return" expression ";"
 do_while_statement: "do" compound_statement "while" "(" expression ")" ";"?
 for_of_statement: "for" "(" expression "of" expression ")" compound_statement
 for_in_statement: "for" "(" expression "in" expression ")" compound_statement
-for_statement: "for" "(" declaration_statement ";" expression ";" expression ")" compound_statement
+for_statement: "for" "(" declaration_statement ";" expression? ";" expression ")" compound_statement
 switch_statement: "switch" "(" expression ")" "{" case_clause* "}"
 case_clause: "case" expression ":" statement* | "default" ":" statement*
 if_statement: "if" "(" expression ")" compound_statement ("else" if_statement | "else" compound_statement)? 
