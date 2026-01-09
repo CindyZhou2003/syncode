@@ -15,7 +15,6 @@ top_level: function_declaration
          | for_of_statement
          | switch_statement
          | try_catch_finally_statement
-         | comment_block
 
 // ------------------------------------------
 // Statements (Inside functions, expressions ARE allowed)
@@ -45,8 +44,9 @@ class_property: "#"? IDENTIFIER ("=" expression)? ";"?
 class_method: "#"? IDENTIFIER function_params_postfix compound_statement
 compound_statement: "{" statement* "}"
 
-export_statement: "export" "default"? declaration_statement ";"?
-                | "export" module_element "from" module_element ";"? 
+export_statement: "export" "default"? (declaration_statement | function_declaration | class_declaration)
+                | "export" "default" expression ";"
+                | "export" module_element ("from" module_element)? ";"?
 import_statement: "import" module_element ";"?
                 | "import" paren_enclosed_string ";"?
                 | "import" module_element "from" module_element ";"?
@@ -57,11 +57,12 @@ control_flow_statement: "break" ";"? | "continue" ";"? | "return" expression ";"
 do_while_statement: "do" compound_statement "while" "(" expression ")" ";"?
 for_of_statement: "for" "(" expression "of" expression ")" compound_statement
 for_in_statement: "for" "(" expression "in" expression ")" compound_statement
-for_statement: "for" "(" declaration_statement ";" expression? ";" expression ")" compound_statement
+for_statement: "for" "(" (var_decl | expression)? ";" expression? ";" expression? ")" compound_statement
 switch_statement: "switch" "(" expression ")" "{" case_clause* "}"
 case_clause: "case" expression ":" statement* | "default" ":" statement*
 if_statement: "if" "(" expression ")" compound_statement ("else" if_statement | "else" compound_statement)? 
-declaration_statement: ("var" | "let" | "const" | "static") lvalue "=" expression ";"?
+declaration_statement: var_decl ";"?
+var_decl: ("var" | "let" | "const" | "static") lvalue "=" expression
 
 lvalue: member_expression
 
@@ -189,7 +190,6 @@ identifier_as_another: IDENTIFIER "as" IDENTIFIER
 
 // Lexical Grammar
 
-comment_block: /#[^\n]*/
 IDENTIFIER: CNAME
 REGEX_LITERAL: /\/[^\n\/]+\/[gimsuy]*/
 BIGINT_LITERAL: /\d+n/
