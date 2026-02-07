@@ -11,3 +11,4 @@ cache/
 dist/
 syncode.egg-info/
 .venv/
+syncode_results/

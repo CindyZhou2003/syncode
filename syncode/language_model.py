@@ -301,7 +301,7 @@ class HuggingFaceModel:
             else:
                 generation_mode = GenerationMode.SAMPLE
         else:
-            if gen_config.num_beam_groups > 1:
+            if gen_config.num_beam_groups is not None and gen_config.num_beam_groups > 1:
                 generation_mode = GenerationMode.GROUP_BEAM_SEARCH
             elif gen_config.do_sample is True:
                 generation_mode = GenerationMode.BEAM_SAMPLE
