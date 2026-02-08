@@ -31,6 +31,7 @@ def run_syncode_benchmark(dataset_path, lang_code, output_base="syncode_results"
     if not grammar:
         raise ValueError(f"Not supported language: {lang_code}")
 
+    # llm = Syncode(model = MODEL_NAME, mode='original', max_new_tokens=250)
     syn_llm = Syncode(
         model=MODEL_NAME, 
         mode='grammar_mask', 
@@ -40,7 +41,8 @@ def run_syncode_benchmark(dataset_path, lang_code, output_base="syncode_results"
 
     # MultiPL-E output directory structure: {dataset_name}-{model_name}-syncode/{task_id}.json.gz
     dataset_name = Path(dataset_path).stem
-    sub_dir = f"{dataset_name}-{MODEL_NAME.replace('/', '_')}-syncode"
+    TEMPERATURE = 0.2 # Not sure
+    sub_dir = f"{dataset_name}-{MODEL_NAME.replace('/', '_')}-{TEMPERATURE}-syncode"
     save_path = Path(output_base) / sub_dir
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -52,15 +54,21 @@ def run_syncode_benchmark(dataset_path, lang_code, output_base="syncode_results"
     for task in tqdm(tasks):
         task_id = task['name']
         prompt_text = task['prompt']
+        stop_tokens = task.get('stop_tokens', [])
+        completion = syn_llm.infer(prompt_text, stop_words=stop_tokens)[0]
         
-        completion = syn_llm.infer(prompt_text)[0]
+        test_code = task.get('tests', "")
         
-        # Output format compatible with MultiPL-E evaluation script
+        # if not test_code.startswith("}"):
+        #     test_code = "}\n" + test_code
+            
         output_data = {
             "name": task_id,
             "language": lang_code,
             "prompt": prompt_text,
-            "completions": [completion]
+            "completions": [completion+"\n\n"],
+            "tests": test_code,
+            "stop_tokens": stop_tokens
         }
         
         # Saved to .json.gz
@@ -71,4 +79,5 @@ def run_syncode_benchmark(dataset_path, lang_code, output_base="syncode_results"
     print(f"\nFinished! Results saved to: {save_path}")
 
 if __name__ == "__main__":
+    # change the path to your local MultiPL-E dataset
     run_syncode_benchmark("D:\\code\\constrained-llm-js-codegen\\benchmark\\MultiPL-E\\datasets\\js_prompts.jsonl", "js")

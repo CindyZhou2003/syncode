@@ -7,4 +7,3 @@ tqdm
 transformers==4.53.2; python_version < "3.13"
 datasets
 jsonschema
-accelerate
